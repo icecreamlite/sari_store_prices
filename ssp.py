@@ -5,8 +5,7 @@
 
 from openpyxl import load_workbook
 from tkinter import *
-#from os import system
-import sys, re
+import re
 
 
 sspDir = '/home/b/projects/sari_store_prices/'
@@ -34,6 +33,8 @@ def printPrice(event):
     price_list.insert(1.0, col_title + list_text)
     price_list.config(state='disabled')
 
+def clearEnt(event):
+    ent.delete(0, 'end')
 
 
 root = Tk()
@@ -56,5 +57,6 @@ price_list.insert(1.0, col_title)
 price_list.config(state='disabled')
 
 root.bind('<KeyRelease>', printPrice) #call printPrice everytime a key is pressed and released
+root.bind('<Escape>', clearEnt)
 
 root.mainloop()
