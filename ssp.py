@@ -7,7 +7,6 @@ from openpyxl import load_workbook
 from tkinter import *
 import re
 
-
 sspDir = '/home/b/projects/sari_store_prices/'
 list_excel_rows = [] #list for excel row number of displayed items
 selected_line = 0 #initialize line number of selected item
@@ -37,6 +36,47 @@ def updateText():
     price_list.insert(1.0, col_title + list_text)
     price_list.config(state='disabled')
 
+
+def updateExcel(itemEntry, priceEntry, editWindow):
+    updateBool = True
+    iE_bg = 'white'
+    pE_bg = 'white'
+
+    #checks if new price is valid
+    try:
+        price = int(priceEntry.get())
+        assert price > 0
+    except:
+        try:
+            price = float(priceEntry.get())
+            assert price > 0
+        except:
+            updateBool = False
+            pE_bg = 'red'
+    
+    #checks if item entry is empty (invalid input)
+    item = itemEntry.get()
+    if item == '':
+        updateBool = False
+        iE_bg = 'red'
+
+    itemEntry.config(bg=iE_bg)
+    priceEntry.config(bg=pE_bg)
+
+    #if both entry fields are valid, update the file
+    #save changes to tracker text file
+    #close editWindow
+    if updateBool:
+        with open('change_tracker.txt', 'a') as ct:
+            ct.write(sheet1['A' + list_excel_rows[selected_line - 4]].value + '\t' +  str(sheet1['B' + list_excel_rows[selected_line - 4]].value)\
+                + '  =>  ' + item + '\t' + str(price) + '\n')
+        sheet1['A' + list_excel_rows[selected_line - 4]].value = item
+        sheet1['B' + list_excel_rows[selected_line - 4]].value = price
+        excel_file.save(sspDir + 'ssp.xlsx')
+        editWindow.destroy()
+        updateText()
+
+
 def mapKey(event):
     current_focus = str(root.focus_get())
 
@@ -51,6 +91,44 @@ def mapKey(event):
             ent.focus_set()
             updateText()
 
+        if event.keysym == 'Return':
+            global editWinexist
+            editWinexist = 1
+
+            #create edit window
+            editWindow = Toplevel(root)
+            editWindow.title('Edit Item')
+            editWindow.resizable(0,0) #remove maximize button
+
+            ws = root.winfo_screenwidth() #get device screeen width
+            editWindow.geometry(f'400x160+{ws//2-200}+{hs//2-200}') #initialize window position
+
+            itemLabelFrame = LabelFrame(editWindow, text='Item')
+            itemLabelFrame.grid(row=0)
+            priceLabelFrame = LabelFrame(editWindow, text='Price')
+            priceLabelFrame.grid(row=1, pady=5)
+
+            #itemEntText = StringVar()
+            itemEntry = Entry(itemLabelFrame, bd=3, bg='white', fg='black', width=37, justify=CENTER)
+            itemEntry.grid(row=0, padx=5, pady=5)
+            #itemEntText.set(sheet1['A' + list_excel_rows[selected_line - 4]].value)
+            itemEntry.insert(END, sheet1['A' + list_excel_rows[selected_line - 4]].value)
+
+            priceEntry = Entry(priceLabelFrame, bd=3, bg='white', fg='black', width=37, justify=CENTER)
+            priceEntry.grid(row=1, padx=5, pady=5)
+            priceEntry.insert(END, str(sheet1['B' + list_excel_rows[selected_line - 4]].value))
+
+            submitButton = Button(editWindow, text='Submit', bg='dim gray', activebackground='dim gray',\
+                command=lambda: updateExcel(itemEntry, priceEntry, editWindow))
+            #partial(updateExcel, itemEntText.get(), priceEntry.get()))
+            submitButton.grid(row=2)
+            
+            #center widgets in editWindow
+            editWindow.columnconfigure(0, weight=1)
+            editWindow.rowconfigure(0, weight=1)
+            editWindow.rowconfigure(1, weight=1)
+            editWindow.rowconfigure(2, weight=1)
+
 
 def selectItem(event):
     line_num = int(float(event.widget.index(CURRENT)))
@@ -61,6 +139,8 @@ def selectItem(event):
         updateText()
         event.widget.tag_add('selected', float(line_num), line_num + 0.59)
         event.widget.tag_config('selected', background='DodgerBlue2')
+
+
 
 
 root = Tk()
