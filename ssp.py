@@ -5,7 +5,7 @@
 
 from openpyxl import load_workbook
 from tkinter import *
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import re
 from sys import path
 
@@ -17,6 +17,8 @@ from tagloc_generate import generate
 
 list_excel_rows = [] #list for excel row number of displayed items
 selected_line = 0 #initialize line number of selected item
+selected_row = [None, None, None, None]
+delBool = False
 
 excel_file = load_workbook(sspDir + 'ssp.xlsx')
 sheet1 = excel_file.get_sheet_by_name('Sheet1')
@@ -26,6 +28,7 @@ col_title = '-' * 59 + '\n' + '||' + 'ITEM'.center(46) + '||' + 'PRICE'.center(7
                 + '\n' + '-' * 59 + '\n'
 
 
+
 def updateText():
     list_text = ''
     global list_excel_rows
@@ -33,9 +36,9 @@ def updateText():
     if ent.get() != '':
         regex = re.compile(ent.get(), re.I) #set regex to what's typewritten in ent
         for i in range(1, num_items):
-            if regex.search(sheet1['A' + str(i+1)].value) != None: #append regex matches to list_text
+            if regex.search(str(sheet1['A' + str(i+1)].value)) != None: #append regex matches to list_text
                 list_excel_rows.append(str(i+1))
-                list_text += '||' + sheet1['A' + str(i+1)].value.center(46) + '||' + str(sheet1['B' + str(i+1)].value).center(7) + '||\n'
+                list_text += '||' + str(sheet1['A' + str(i+1)].value).center(46) + '||' + str(sheet1['B' + str(i+1)].value).center(7) + '||\n'
 
     #update tkinter price_list text box
     price_list['state'] = 'normal'
@@ -44,7 +47,7 @@ def updateText():
     price_list['state'] = 'disabled'
 
 
-def updateExcel(itemEntry, priceEntry, editWindow):
+def editExcel(itemEntry, priceEntry, editWindow):
     #setting default
     updateBool = True
     iE_bg = 'white'
@@ -57,12 +60,8 @@ def updateExcel(itemEntry, priceEntry, editWindow):
     location = locationCb.get()
 
     #if same data in entry, exit and do nothing
-    selected_item = str(sheet1['A' + list_excel_rows[selected_line - 4]].value)
-    selected_price = str(sheet1['B' + list_excel_rows[selected_line - 4]].value)
-    selected_tag = str(sheet1['C' + list_excel_rows[selected_line - 4]].value)
-    selected_location = str(sheet1['D' + list_excel_rows[selected_line - 4]].value)
-    if selected_item == item and selected_price == str(price)\
-        and selected_tag == tag and selected_location == location: editWindowWithdraw()
+    if selected_row[0] == item and selected_row[1] == str(price)\
+        and selected_row[2] == tag and selected_row[3] == location: editWindowWithdraw()
 
     #else check validity and update excel file
     else:
@@ -105,13 +104,12 @@ def updateExcel(itemEntry, priceEntry, editWindow):
             updateText()
 
             #generate tag and location text files only if they're updated
-            if selected_tag != tag or selected_location != location:
+            if selected_row[2] != tag or selected_row[3] != location:
                 generate(sspDir)
 
             #track changes
             with open(sspDir + 'text_files/change_tracker.txt', 'a') as ct:
-                ct.write(selected_item + '\t' +  selected_price + '\t' + selected_tag + '\t' + selected_location\
-                    + '  =>  ' + item + '\t' + str(price) + '\t' + tag + '\t' + location + '\n')
+                ct.write(f'Edited row {list_excel_rows[selected_line - 4]}: {selected_row[0]}\t{selected_row[1]}\t{selected_row[2]}\t{selected_row[3]}  =>  {item}\t{price}\t{tag}\t{location}\n')
 
 
 def editWindowWithdraw():
@@ -123,16 +121,18 @@ def editWindowWithdraw():
 
 
 def mapKey(event):
-    if editWindow.state() == 'withdrawn':
+    global delBool
+    #do if edit window or delete window is not active
+    if editWindow.state() == 'withdrawn' and delBool == False:
 
         current_focus = str(root.focus_get())
 
-        if current_focus == '.!entry':
+        if current_focus == '.!frame.!entry':
 
             if event.keysym == 'Escape': ent.delete(0, 'end') #clear entry
             updateText()
 
-        elif current_focus == '.!frame.!text':
+        elif current_focus == '.!frame2.!text':
 
             if event.keysym == 'Escape':
                 ent.focus_set()
@@ -147,7 +147,7 @@ def mapKey(event):
                 for tag in open(sspDir + 'text_files/tags.txt', 'r'):
                     tag = tag[:-1]
                     tags.append(tag)
-                    if str(sheet1['C' + list_excel_rows[selected_line - 4]].value) == tag:
+                    if selected_row[2] == tag:
                         tagCurInd = len(tags) - 1
 
                 #fetch list of locations
@@ -155,7 +155,7 @@ def mapKey(event):
                 for location in open(sspDir + 'text_files/locations.txt', 'r'):
                     location = location[:-1]
                     locations.append(location)
-                    if str(sheet1['D' + list_excel_rows[selected_line - 4]].value) == location:
+                    if selected_row[3] == location:
                         locCurInd = len(locations) - 1
 
                 ##Set editWindow Fields
@@ -166,25 +166,55 @@ def mapKey(event):
 
                 itemEntry.delete(0, 'end')
                 priceEntry.delete(0, 'end')
-                itemEntry.insert(END, sheet1['A' + list_excel_rows[selected_line - 4]].value)
-                priceEntry.insert(END, str(sheet1['B' + list_excel_rows[selected_line - 4]].value))
+                itemEntry.insert(END, selected_row[0])
+                priceEntry.insert(END, selected_row[1])
                 ##
 
                 editWindow.deiconify()
 
                 editWindow.protocol('WM_DELETE_WINDOW', editWindowWithdraw)
+    
+    if delBool:
+        delBool = False
 
 
 def selectItem(event):
     if editWindow.state() == 'withdrawn':
         line_num = int(float(event.widget.index(CURRENT)))
+
+        #if selected, store values and highlight
         if line_num > 3 and line_num < len(list_excel_rows) + 4:
             global selected_line
             selected_line = line_num
+            global selected_row
+            selected_row[0] = str(sheet1['A' + list_excel_rows[selected_line - 4]].value) #Item name
+            selected_row[1] = str(sheet1['B' + list_excel_rows[selected_line - 4]].value) #Price
+            selected_row[2] = str(sheet1['C' + list_excel_rows[selected_line - 4]].value) #Tag
+            selected_row[3] = str(sheet1['D' + list_excel_rows[selected_line - 4]].value) #Location
             event.widget.focus_set()
             updateText()
             event.widget.tag_add('selected', float(line_num), line_num + 0.59)
             event.widget.tag_config('selected', background='DodgerBlue2')
+
+
+def delItem(event):
+    global delBool
+    delBool = True
+    ent['state'] = 'disabled'
+    ans = messagebox.askyesno('Delete', f"Are you sure you want to delete {selected_row[0]}?")
+    if ans == True:
+
+        #track deletion
+        with open(sspDir + 'text_files/change_tracker.txt', 'a') as ct:
+            ct.write(f'Deleted row {list_excel_rows[selected_line - 4]}: {selected_row[0]}\t{selected_row[1]}\t{selected_row[2]}\t{selected_row[3]}\n')
+
+        #delete row and save
+        sheet1.delete_rows(int(list_excel_rows[selected_line - 4]), 1)
+        excel_file.save(sspDir + 'ssp.xlsx')
+
+        updateText()
+
+    ent['state'] = 'normal'    
 
 
 
@@ -217,7 +247,7 @@ locationLF.grid(row=3, pady=1)
 
 #create submitButton in editWindow
 submitButton = Button(editWindow, text='Submit', bg='dim gray', activebackground='dim gray',\
-    command=lambda: updateExcel(itemEntry, priceEntry, editWindow))
+    command=lambda: editExcel(itemEntry, priceEntry, editWindow))
 submitButton.grid(row=4)
 
 #center widgets in editWindow
@@ -258,7 +288,10 @@ editWindow.withdraw()
 ##end of editWindow creation
 
 
-ent = Entry(root, bd=3, bg='white', fg='black', width=53)
+ent_frame = Frame(root)
+ent_frame.grid(row=0)
+
+ent = Entry(ent_frame, bd=3, bg='white', fg='black', width=53)
 ent.grid(row=0)
 ent.focus_set()
 
@@ -273,5 +306,6 @@ price_list['state'] = 'disabled'
 
 root.bind('<KeyRelease>', mapKey)
 price_list.bind('<1>', selectItem)
+price_list.bind('<Delete>', delItem)
 
 root.mainloop()
