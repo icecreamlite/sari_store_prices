@@ -43,39 +43,48 @@ def updateExcel(itemEntry, priceEntry, editWindow):
     iE_bg = 'white'
     pE_bg = 'white'
 
-    #checks if new price is valid
-    try:
-        price = int(priceEntry.get())
-        assert price > 0
-    except:
+    item = itemEntry.get()
+    price = priceEntry.get()
+
+    #if same data in entry, exit and do nothing
+    if sheet1['A' + list_excel_rows[selected_line - 4]].value == item and\
+        str(sheet1['B' + list_excel_rows[selected_line - 4]].value) == str(price):
+        editWindowWithdraw()
+
+    #else check validity and update excel file
+    else:
+        #checks if new price is valid
         try:
-            price = float(priceEntry.get())
+            price = int(price)
             assert price > 0
         except:
+            try:
+                price = float(price)
+                assert price > 0
+            except:
+                updateBool = False
+                pE_bg = 'red'
+
+        #checks if item entry is empty (invalid input)
+        if item == '':
             updateBool = False
-            pE_bg = 'red'
-    
-    #checks if item entry is empty (invalid input)
-    item = itemEntry.get()
-    if item == '':
-        updateBool = False
-        iE_bg = 'red'
+            iE_bg = 'red'
 
-    itemEntry.config(bg=iE_bg)
-    priceEntry.config(bg=pE_bg)
+        itemEntry.config(bg=iE_bg)
+        priceEntry.config(bg=pE_bg)
 
-    #if both entry fields are valid, update the file
-    #save changes to tracker text file
-    #close editWindow
-    if updateBool:
-        with open(sspDir + 'change_tracker.txt', 'a') as ct:
-            ct.write(sheet1['A' + list_excel_rows[selected_line - 4]].value + '\t' +  str(sheet1['B' + list_excel_rows[selected_line - 4]].value)\
-                + '  =>  ' + item + '\t' + str(price) + '\n')
-        sheet1['A' + list_excel_rows[selected_line - 4]].value = item
-        sheet1['B' + list_excel_rows[selected_line - 4]].value = price
-        excel_file.save(sspDir + 'ssp.xlsx')
-        editWindowWithdraw()
-        updateText()
+        #if both entry fields are valid, update the file
+        #save changes to tracker text file
+        #close editWindow
+        if updateBool:
+            with open(sspDir + 'change_tracker.txt', 'a') as ct:
+                ct.write(sheet1['A' + list_excel_rows[selected_line - 4]].value + '\t' +  str(sheet1['B' + list_excel_rows[selected_line - 4]].value)\
+                    + '  =>  ' + item + '\t' + str(price) + '\n')
+            sheet1['A' + list_excel_rows[selected_line - 4]].value = item
+            sheet1['B' + list_excel_rows[selected_line - 4]].value = price
+            excel_file.save(sspDir + 'ssp.xlsx')
+            editWindowWithdraw()
+            updateText()
 
 
 def editWindowWithdraw():
