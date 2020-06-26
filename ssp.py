@@ -19,6 +19,7 @@ col_title = '-' * 59 + '\n' + '||' + 'ITEM'.center(46) + '||' + 'PRICE'.center(7
                 + '\n' + '-' * 59 + '\n'
 
 
+
 def updateText():
     list_text = ''
     global list_excel_rows
@@ -67,78 +68,61 @@ def updateExcel(itemEntry, priceEntry, editWindow):
     #save changes to tracker text file
     #close editWindow
     if updateBool:
-        with open('change_tracker.txt', 'a') as ct:
+        with open(sspDir + 'change_tracker.txt', 'a') as ct:
             ct.write(sheet1['A' + list_excel_rows[selected_line - 4]].value + '\t' +  str(sheet1['B' + list_excel_rows[selected_line - 4]].value)\
                 + '  =>  ' + item + '\t' + str(price) + '\n')
         sheet1['A' + list_excel_rows[selected_line - 4]].value = item
         sheet1['B' + list_excel_rows[selected_line - 4]].value = price
         excel_file.save(sspDir + 'ssp.xlsx')
-        editWindow.destroy()
+        editWindowWithdraw()
         updateText()
+
+
+def editWindowWithdraw():
+    editWindow.withdraw()
+    ent.config(state='normal')
 
 
 def mapKey(event):
-    current_focus = str(root.focus_get())
+    if editWindow.state() == 'withdrawn':
 
-    if current_focus == '.!entry':
+        current_focus = str(root.focus_get())
 
-        if event.keysym == 'Escape': ent.delete(0, 'end') #clear entry
-        updateText()
+        if current_focus == '.!entry':
 
-    elif current_focus == '.!frame.!text':
-
-        if event.keysym == 'Escape':
-            ent.focus_set()
+            if event.keysym == 'Escape': ent.delete(0, 'end') #clear entry
             updateText()
 
-        if event.keysym == 'Return':
-            global editWinexist
-            editWinexist = 1
+        elif current_focus == '.!frame.!text':
 
-            #create edit window
-            editWindow = Toplevel(root)
-            editWindow.title('Edit Item')
-            editWindow.resizable(0,0) #remove maximize button
+            if event.keysym == 'Escape':
+                ent.focus_set()
+                updateText()
 
-            ws = root.winfo_screenwidth() #get device screeen width
-            editWindow.geometry(f'400x160+{ws//2-200}+{hs//2-200}') #initialize window position
+            if event.keysym == 'Return':
 
-            itemLabelFrame = LabelFrame(editWindow, text='Item')
-            itemLabelFrame.grid(row=0)
-            priceLabelFrame = LabelFrame(editWindow, text='Price')
-            priceLabelFrame.grid(row=1, pady=5)
+                ent.config(state='disabled')
 
-            #itemEntText = StringVar()
-            itemEntry = Entry(itemLabelFrame, bd=3, bg='white', fg='black', width=37, justify=CENTER)
-            itemEntry.grid(row=0, padx=5, pady=5)
-            #itemEntText.set(sheet1['A' + list_excel_rows[selected_line - 4]].value)
-            itemEntry.insert(END, sheet1['A' + list_excel_rows[selected_line - 4]].value)
+                editWindow.deiconify()
 
-            priceEntry = Entry(priceLabelFrame, bd=3, bg='white', fg='black', width=37, justify=CENTER)
-            priceEntry.grid(row=1, padx=5, pady=5)
-            priceEntry.insert(END, str(sheet1['B' + list_excel_rows[selected_line - 4]].value))
+                itemEntry.delete(0, 'end')
+                priceEntry.delete(0, 'end')
+                itemEntry.insert(END, sheet1['A' + list_excel_rows[selected_line - 4]].value)
+                priceEntry.insert(END, str(sheet1['B' + list_excel_rows[selected_line - 4]].value))
 
-            submitButton = Button(editWindow, text='Submit', bg='dim gray', activebackground='dim gray',\
-                command=lambda: updateExcel(itemEntry, priceEntry, editWindow))
-            #partial(updateExcel, itemEntText.get(), priceEntry.get()))
-            submitButton.grid(row=2)
-            
-            #center widgets in editWindow
-            editWindow.columnconfigure(0, weight=1)
-            editWindow.rowconfigure(0, weight=1)
-            editWindow.rowconfigure(1, weight=1)
-            editWindow.rowconfigure(2, weight=1)
+                editWindow.protocol('WM_DELETE_WINDOW', editWindowWithdraw)
 
 
 def selectItem(event):
-    line_num = int(float(event.widget.index(CURRENT)))
-    if line_num > 3 and line_num < len(list_excel_rows) + 4:
-        global selected_line
-        selected_line = line_num
-        event.widget.focus_set()
-        updateText()
-        event.widget.tag_add('selected', float(line_num), line_num + 0.59)
-        event.widget.tag_config('selected', background='DodgerBlue2')
+    if editWindow.state() == 'withdrawn':
+        line_num = int(float(event.widget.index(CURRENT)))
+        if line_num > 3 and line_num < len(list_excel_rows) + 4:
+            global selected_line
+            selected_line = line_num
+            event.widget.focus_set()
+            updateText()
+            event.widget.tag_add('selected', float(line_num), line_num + 0.59)
+            event.widget.tag_config('selected', background='DodgerBlue2')
 
 
 
@@ -151,6 +135,41 @@ root.resizable(0,0) #remove maximize button
 hs = root.winfo_screenheight() #get device screen height
 
 root.geometry(f'487x{hs-63}+0+0') #initialize window position
+
+##create withdrawn editWindow
+editWindow = Toplevel(root)
+editWindow.title('Edit Item')
+editWindow.resizable(0,0) #remove maximize button
+
+ws = root.winfo_screenwidth() #get device screeen width
+editWindow.geometry(f'400x160+{ws//2-200}+{hs//2-200}') #initialize window position
+
+#create labelframes in editWindow
+itemLabelFrame = LabelFrame(editWindow, text='Item')
+itemLabelFrame.grid(row=0)
+priceLabelFrame = LabelFrame(editWindow, text='Price')
+priceLabelFrame.grid(row=1, pady=5)
+
+#create submitButton in editWindow
+submitButton = Button(editWindow, text='Submit', bg='dim gray', activebackground='dim gray',\
+    command=lambda: updateExcel(itemEntry, priceEntry, editWindow))
+submitButton.grid(row=2)
+
+#center widgets in editWindow
+editWindow.columnconfigure(0, weight=1)
+editWindow.rowconfigure(0, weight=1)
+editWindow.rowconfigure(1, weight=1)
+editWindow.rowconfigure(2, weight=1)
+
+#create entries in editWindow
+itemEntry = Entry(itemLabelFrame, bd=3, bg='white', fg='black', width=37, justify=CENTER)
+itemEntry.grid(row=0, padx=5, pady=5)
+priceEntry = Entry(priceLabelFrame, bd=3, bg='white', fg='black', width=37, justify=CENTER)
+priceEntry.grid(row=1, padx=5, pady=5)
+
+editWindow.withdraw()
+##end of editWindow creation
+
 
 ent = Entry(root, bd=3, bg='white', fg='black', width=53)
 ent.grid(row=0)
