@@ -1,6 +1,6 @@
 #!/home/b/projects/sari_store_prices/venv/bin/python3
 
-def generate(sspDir):
+def generateTagLocFile(sspDir):
     from openpyxl import load_workbook
 
     excel_file = load_workbook(sspDir + 'ssp.xlsx')
@@ -27,3 +27,6 @@ def generate(sspDir):
     with open(sspDir + 'text_files/locations.txt', 'w') as locations:
         for l in location:
             locations.write(f'{l}\n')
+
+if __name__ == '__main__':
+    generateTagLocFile('/home/b/projects/sari_store_prices/')
