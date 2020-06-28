@@ -1,0 +1,3 @@
+Edited row 93: Empirador Long Neck	115	Drinks	Box Below Front Window  =>  Empirador Long Neck	120	Drinks	Box Below Front Window
+Edited row 197: San Miguel Ginebra	55	Drinks	Box Below Front Window  =>  San Miguel Ginebra	60	Drinks	Box Below Front Window
+Edited row 198: San Miguel Grande	105	Drinks	Refrigerator  =>  San Miguel Grande	110	Drinks	Refrigerator
