@@ -3,11 +3,16 @@
 #link for openpyxl tutorial
 #https://code.tutsplus.com/tutorials/how-to-work-with-excel-documents-using-python--cms-25698
 
+#Link for pandas excel tutorial
+#https://pythonbasics.org/read-excel/
+#https://pythonbasics.org/write-excel/
+
+
 from openpyxl import load_workbook
 from tkinter import *
 from tkinter import ttk, messagebox
 from tkinter import font as tkFont
-import re
+import re, pandas
 from sys import path
 
 sspDir = '/home/b/projects/sari_store_prices/'
@@ -30,6 +35,19 @@ num_items = sheet1.max_row #get number of rows
 col_title = '-' * 59 + '\n' + '||' + 'ITEM'.center(46) + '||' + 'PRICE'.center(7) + '||'\
                 + '\n' + '-' * 59 + '\n'
 
+
+def reloadExcel():
+    global excel_file
+    excel_file = load_workbook(sspDir + 'ssp.xlsx')
+    global sheet1
+    sheet1 = excel_file.get_sheet_by_name('Sheet1')
+    global num_items
+    num_items = sheet1.max_row
+
+def sortExcel():
+    df = pandas.read_excel(sspDir + 'ssp.xlsx')
+    df = df.sort_values('Item')
+    df.to_excel(sspDir + 'ssp.xlsx', index=False)
 
 def updateText():
     #check if filters are applied
@@ -69,7 +87,11 @@ def updateText():
             if regex_matched:
                 list_excel_rows.append(str(i+1))
                 list_text += '||' + str(sheet1['A' + str(i+1)].value).center(46) + '||' + str(sheet1['B' + str(i+1)].value).center(7) + '||\n'
-
+        try:
+            list_excel_rows[0]
+            list_text += '-' * 59
+        except IndexError:
+            pass
     #update tkinter price_list text box based on matches
     price_list['state'] = 'normal'
     price_list.delete(1.0, 'end')
@@ -81,6 +103,7 @@ def updateText():
 def submitItem():
     trig = edit_add.get()
     updateBool = True
+    same_name = False
     iE_bg = 'white'
     pE_bg = 'white'
     Cbtheme = 'white'
@@ -95,11 +118,13 @@ def submitItem():
         tracker_msg = f'Edited row {list_excel_rows[selected_line - 4]}: {selected_row[0]}\t{selected_row[1]}\t{selected_row[2]}\t{selected_row[3]}  =>  {item}\t{price}\t{tag}\t{location}\n'
 
         #if same data in entry, exit and do nothing
-        if selected_row[0] == item and selected_row[1] == str(price)\
-            and selected_row[2] == tag and selected_row[3] == location:
-            editWindowWithdraw()
+        if selected_row[0] == item:
+            same_name = True
+            if selected_row[1] == str(price) and selected_row[2] == tag and selected_row[3] == location:
+                editWindowWithdraw()
 
     elif trig == 'add':
+        same_name = False
         global num_items
         row = str(num_items + 1)
         tracker_msg = f'Inserted: {item}\t{price}\t{tag}\t{location}\n'
@@ -146,11 +171,14 @@ def submitItem():
 
             editWindowWithdraw()
 
+            if not same_name:
+                sortExcel()
+
             #generate tag and location text files only if they're updated
             if selected_row[2] != tag or selected_row[3] != location:
                 generateTagLocFile(sspDir)
 
-            num_items += 1
+
             updateAll()
 
 
@@ -182,6 +210,7 @@ def fetchLocs():
 
 
 def updateAll():
+    reloadExcel()
     global tags
     tags = fetchTags()
     global locations
@@ -288,9 +317,6 @@ def delItem(event):
         generateTagLocFile(sspDir)
         
         updateAll()
-
-        global num_items
-        num_items -= 1
 
     ent.focus_set()
     ent['state'] = 'normal'
