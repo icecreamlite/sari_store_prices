@@ -6,6 +6,7 @@
 from openpyxl import load_workbook
 from tkinter import *
 from tkinter import ttk, messagebox
+from tkinter import font as tkFont
 import re
 from sys import path
 
@@ -24,11 +25,10 @@ delBool = False
 
 excel_file = load_workbook(sspDir + 'ssp.xlsx')
 sheet1 = excel_file.get_sheet_by_name('Sheet1')
-num_items = len(list(sheet1.rows)) #get number of rows
+num_items = sheet1.max_row #get number of rows
 
 col_title = '-' * 59 + '\n' + '||' + 'ITEM'.center(46) + '||' + 'PRICE'.center(7) + '||'\
                 + '\n' + '-' * 59 + '\n'
-
 
 
 def updateText():
@@ -77,8 +77,9 @@ def updateText():
     price_list['state'] = 'disabled'
 
 
-def editItem(itemEntry, priceEntry, editWindow):
-    #setting default
+#edit or add item
+def submitItem():
+    trig = edit_add.get()
     updateBool = True
     iE_bg = 'white'
     pE_bg = 'white'
@@ -89,13 +90,22 @@ def editItem(itemEntry, priceEntry, editWindow):
     tag = tagCb.get()
     location = locationCb.get()
 
-    #if same data in entry, exit and do nothing
-    if selected_row[0] == item and selected_row[1] == str(price)\
-        and selected_row[2] == tag and selected_row[3] == location: editWindowWithdraw()
+    if trig == 'edit':
+        row = list_excel_rows[selected_line - 4]
+        tracker_msg = f'Edited row {list_excel_rows[selected_line - 4]}: {selected_row[0]}\t{selected_row[1]}\t{selected_row[2]}\t{selected_row[3]}  =>  {item}\t{price}\t{tag}\t{location}\n'
 
-    #else check validity and update excel file
-    else:
-        #checks if new price is valid
+        #if same data in entry, exit and do nothing
+        if selected_row[0] == item and selected_row[1] == str(price)\
+            and selected_row[2] == tag and selected_row[3] == location:
+            editWindowWithdraw()
+
+    elif trig == 'add':
+        global num_items
+        row = str(num_items + 1)
+        tracker_msg = f'Inserted: {item}\t{price}\t{tag}\t{location}\n'
+
+    #check validity and update excel file if editWindow is still open
+    if editWindow.state() == 'normal':
         try:
             price = int(price)
             assert price > 0
@@ -124,28 +134,32 @@ def editItem(itemEntry, priceEntry, editWindow):
         #save changes to tracker text file
         #close editWindow
         if updateBool:
-
-            sheet1['A' + list_excel_rows[selected_line - 4]].value = item
-            sheet1['B' + list_excel_rows[selected_line - 4]].value = price
-            sheet1['C' + list_excel_rows[selected_line - 4]].value = tag
-            sheet1['D' + list_excel_rows[selected_line - 4]].value = location
+            sheet1['A' + row] = item
+            sheet1['B' + row] = price
+            sheet1['C' + row] = tag
+            sheet1['D' + row] = location
             excel_file.save(sspDir + 'ssp.xlsx')
+
+            #track changes
+            with open(sspDir + 'text_files/change_tracker.txt', 'a') as ct:
+                ct.write(tracker_msg)
+
             editWindowWithdraw()
 
             #generate tag and location text files only if they're updated
             if selected_row[2] != tag or selected_row[3] != location:
                 generateTagLocFile(sspDir)
 
+            num_items += 1
             updateAll()
-
-            #track changes
-            with open(sspDir + 'text_files/change_tracker.txt', 'a') as ct:
-                ct.write(f'Edited row {list_excel_rows[selected_line - 4]}: {selected_row[0]}\t{selected_row[1]}\t{selected_row[2]}\t{selected_row[3]}  =>  {item}\t{price}\t{tag}\t{location}\n')
 
 
 def editWindowWithdraw():
     ent.focus_set()
     editWindow.withdraw()
+    tagsOM['state'] = 'normal'
+    locationsOM['state'] = 'normal'
+    addBut['state'] = 'normal'
     ent['state'] = 'normal'
     itemEntry['bg'] = 'white'
     priceEntry['bg'] = 'white'
@@ -176,6 +190,37 @@ def updateAll():
     updateText()
 
 
+def showEditWindow(trig):
+    tagsOM['state'] = 'disabled'
+    locationsOM['state'] = 'disabled'
+    edit_add.set(trig)
+    tagCb.delete(0,'end')
+    locationCb.delete(0, 'end')
+    addBut['state'] = 'disabled'
+    ent['state'] = 'disabled'    
+    tagCb['value'] = tags
+    locationCb['value'] = locations
+    itemEntry.delete(0, 'end')
+    priceEntry.delete(0, 'end')
+
+    if trig == 'edit':
+        editWindow.title('Edit Item')
+        tagCurInd = tags.index(selected_row[2])
+        locCurInd = locations.index(selected_row[3])
+
+        #-- Set editWindow Fields
+        #setEditWindowFields()
+        tagCb.current(tagCurInd)
+        locationCb.current(locCurInd)                
+        itemEntry.insert(END, selected_row[0])
+        priceEntry.insert(END, selected_row[1])
+        #--
+    elif trig == 'add': editWindow.title('Add Item')
+
+    editWindow.attributes('-topmost', 'true')
+    editWindow.deiconify()    
+
+
 def mapKey(event):
     global delBool
     #do if edit window or delete window is not active
@@ -198,26 +243,8 @@ def mapKey(event):
 
             if event.keysym == 'Return':
 
-                ent['state'] = 'disabled'
-
-                tagCurInd = tags.index(selected_row[2])
-                locCurInd = locations.index(selected_row[3])
-
-                #-- Set editWindow Fields
-                tagCb['value'] = tags
-                tagCb.current(tagCurInd)
-                locationCb['value'] = locations
-                locationCb.current(locCurInd)
-
-                itemEntry.delete(0, 'end')
-                priceEntry.delete(0, 'end')
-                itemEntry.insert(END, selected_row[0])
-                priceEntry.insert(END, selected_row[1])
-                #--
-
-                editWindow.deiconify()
-
-                editWindow.protocol('WM_DELETE_WINDOW', editWindowWithdraw)
+                showEditWindow('edit')
+                
     
     if delBool:
         delBool = False
@@ -262,6 +289,9 @@ def delItem(event):
         
         updateAll()
 
+        global num_items
+        num_items -= 1
+
     ent.focus_set()
     ent['state'] = 'normal'
 
@@ -304,8 +334,7 @@ root.geometry(f'478x{hs-63}+0+0') #initialize window position
 #========================================== Create Withdrawn EditWindow =================================================
 
 editWindow = Toplevel(root)
-editWindow.title('Edit Item')
-editWindow.resizable(0,0) #remove maximize button
+editWindow.resizable(0,0)
 
 editWindow.geometry(f'400x300+{ws//2-200}+{hs//2-200}') #initialize window position
 
@@ -321,7 +350,7 @@ locationLF.grid(row=3, pady=1)
 
 #create submitButton in editWindow
 submitButton = Button(editWindow, text='Submit', bg='dim gray', activebackground='dim gray',\
-    command=lambda: editItem(itemEntry, priceEntry, editWindow))
+    command=lambda: submitItem())
 submitButton.grid(row=4)
 
 #center widgets in editWindow
@@ -360,12 +389,14 @@ locationCb.grid(row=0, padx=5, pady=5)
 
 editWindow.withdraw()
 
+edit_add = StringVar(root)
+
 #====================================== Create Search & Filters =========================================================
 
 search_frame = Frame(root)
 search_frame.grid(row=0)
 
-ent = Entry(search_frame, bd=3, bg='white', fg='black', width=27)
+ent = Entry(search_frame, bd=3, bg='white', fg='black', width=23)
 ent.grid(row=0, column=0, padx=2)
 ent.focus_set()
 
@@ -389,6 +420,13 @@ locMenu = locationsOM['menu']
 
 updateFilters()
 
+#=================================================== Create Add Button ==================================================
+
+button_font = tkFont.Font(size=9, weight=tkFont.BOLD)
+
+addBut = Button(search_frame, text='+', bd=2, font=button_font, command=lambda: showEditWindow('add'))
+addBut.grid(row=0, column=3, pady=1)
+
 #================================================= Create Price List Text ===============================================
 
 text_frame = Frame(root)
@@ -400,8 +438,9 @@ price_list.grid(row=0, pady=10)
 price_list.insert(1.0, col_title)
 price_list['state'] = 'disabled'
 
-#======================================================= Binds ==========================================================
+#=================================================  == Binds & Protocols ================================================
 
+editWindow.protocol('WM_DELETE_WINDOW', editWindowWithdraw)
 root.bind('<KeyRelease>', mapKey)
 price_list.bind('<1>', selectItem)
 price_list.bind('<Delete>', delItem)
