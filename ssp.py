@@ -27,6 +27,7 @@ list_excel_rows = [] #list for excel row number of displayed items
 selected_line = 0 #initialize line number of selected item
 selected_row = [None, None, None, None]
 delBool = False
+histFirstOpen = True
 
 excel_file = load_workbook(sspDir + 'ssp.xlsx')
 sheet1 = excel_file.get_sheet_by_name('Sheet1')
@@ -115,7 +116,7 @@ def submitItem():
 
     if trig == 'edit':
         row = list_excel_rows[selected_line - 4]
-        tracker_msg = f'Edited row {list_excel_rows[selected_line - 4]}: {selected_row[0]}\t{selected_row[1]}\t{selected_row[2]}\t{selected_row[3]}  =>  {item}\t{price}\t{tag}\t{location}\n'
+        tracker_msg = f'Edited row {list_excel_rows[selected_line - 4]}: {selected_row[0]}|{selected_row[1]}|{selected_row[2]}|{selected_row[3]} => {item}|{price}|{tag}|{location}\n'
 
         #if same data in entry, exit and do nothing
         if selected_row[0] == item:
@@ -127,7 +128,7 @@ def submitItem():
         same_name = False
         global num_items
         row = str(num_items + 1)
-        tracker_msg = f'Inserted: {item}\t{price}\t{tag}\t{location}\n'
+        tracker_msg = f'Inserted: {item}|{price}|{tag}|{location}\n'
 
     #check validity and update excel file if editWindow is still open
     if editWindow.state() == 'normal':
@@ -179,7 +180,7 @@ def submitItem():
                 generateTagLocFile(sspDir)
 
 
-            updateAll()
+            updateAll(tracker_msg)
 
 
 def editWindowWithdraw():
@@ -209,7 +210,8 @@ def fetchLocs():
     return locations
 
 
-def updateAll():
+def updateAll(tracker_msg): #Update GUI live
+    displayHistLine(tracker_msg)
     reloadExcel()
     global tags
     tags = fetchTags()
@@ -307,8 +309,9 @@ def delItem(event):
         ent.focus_set()
 
         #track deletion
+        tracker_msg = f'Deleted row {list_excel_rows[selected_line - 4]}: {selected_row[0]}|{selected_row[1]}|{selected_row[2]}|{selected_row[3]}\n'
         with open(sspDir + 'text_files/change_tracker.txt', 'a') as ct:
-            ct.write(f'Deleted row {list_excel_rows[selected_line - 4]}: {selected_row[0]}\t{selected_row[1]}\t{selected_row[2]}\t{selected_row[3]}\n')
+            ct.write(tracker_msg)
 
         #delete row and save
         sheet1.delete_rows(int(list_excel_rows[selected_line - 4]), 1)
@@ -316,7 +319,7 @@ def delItem(event):
 
         generateTagLocFile(sspDir)
         
-        updateAll()
+        updateAll(tracker_msg)
 
     ent.focus_set()
     ent['state'] = 'normal'
@@ -346,6 +349,54 @@ def updateFilters():
         locMenu.add_command(label=i, command=lambda value=i: setFilter('loc', value))
 
 
+def displayHistLine(line):
+    color_list = ['SteelBlue1', 'turquoise1', 'paleturquoise', 'bisque2']
+
+    #Used by inserted and deleted history only
+    def highlight(tagname, end, color):
+        histText['state'] = 'normal'
+        histText.insert(1.0, line + '\n')
+        histText.tag_add(tagname, 1.0, end)
+        histText.tag_config(tagname, background=color)
+        histText['state'] = 'disabled'
+
+    if line.split()[0] == 'Inserted:': highlight('Inserted', 1.8, 'spring green')
+    elif line.split()[0] == 'Deleted': highlight('Deleted', 1.7, 'firebrick2')
+    elif line.split()[0] == 'Edited': #Colors items with changes
+        
+        left_ind = line.index(':') + 2
+        right_ind = left_ind
+        line_list = re.split('\|| => ',line[left_ind:-1])
+        for i in range(4):
+            right_ind += len(line_list[i])
+        right_ind += 7
+        
+        histText['state'] = 'normal'
+        histText.insert(1.0, line + '\n')
+        histText.tag_add('Edited', 1.0, 1.6)
+        histText.tag_config('Edited', background='yellow')
+        
+        for i in range(4):
+            left_val = line_list[i]
+            right_val = line_list[i+4]
+            left_end_ind = left_ind + len(left_val)
+            right_end_ind = right_ind + len(right_val)
+            if left_val != right_val:
+                histText.tag_add(f'tag{i}', f'1.{left_ind}', f'1.{left_end_ind}')
+                histText.tag_config(f'tag{i}', background=color_list[i])
+                histText.tag_add(f'tag{i}', f'1.{right_ind}', f'1.{right_end_ind}')
+                histText.tag_config(f'tag{i}', background=color_list[i])
+            left_ind = left_end_ind + 1
+            right_ind = right_end_ind + 1                                                
+
+        histText['state'] = 'disabled'
+
+def openHistoryWindow(event):
+    global histFirstOpen
+    if histFirstOpen:
+        for line in open(sspDir + 'text_files/change_tracker.txt'): displayHistLine(line)
+        histFirstOpen = False
+    historyWindow.deiconify()
 
 #================================================= Create Main Window ===================================================
 root = Tk()
@@ -355,7 +406,10 @@ root.resizable(0,0) #remove maximize button
 ws = root.winfo_screenwidth() #get device screeen width
 hs = root.winfo_screenheight() #get device screen height
 
-root.geometry(f'478x{hs-63}+0+0') #initialize window position
+rootWidth = 478
+rootHeight = hs - 63
+
+root.geometry(f'{rootWidth}x{rootHeight}+0+0') #initialize window position
 
 #========================================== Create Withdrawn EditWindow =================================================
 
@@ -417,7 +471,28 @@ editWindow.withdraw()
 
 edit_add = StringVar(root)
 
-#====================================== Create Search & Filters =========================================================
+#========================================== Create Withdrawn History Window =============================================
+
+historyWindow = Toplevel(root, bg='gray')
+historyWindow.title('History')
+historyWindow.resizable(0,0) #remove maximize button
+
+hwWidth = ws-(rootWidth+15)
+hwHeight = hs-63
+
+historyWindow.geometry(f'{hwWidth}x{hwHeight}+{ws-10}+0') #initialize window position
+
+# historyWindow.withdraw()
+
+histText = Text(historyWindow, bg='white', fg='black', relief=RIDGE, state=DISABLED)
+histText.grid(row=0, column=0, padx=2, pady=2, sticky=N+E+S+W)
+historyWindow.columnconfigure(0, weight=1)
+historyWindow.rowconfigure(0, weight=1)
+
+historyWindow.withdraw()
+
+
+#============================================== Create Search & Filters =================================================
 
 search_frame = Frame(root)
 search_frame.grid(row=0)
@@ -467,9 +542,12 @@ price_list['state'] = 'disabled'
 #=================================================  == Binds & Protocols ================================================
 
 editWindow.protocol('WM_DELETE_WINDOW', editWindowWithdraw)
+historyWindow.protocol('WM_DELETE_WINDOW', lambda: historyWindow.withdraw())
+
 root.bind('<KeyRelease>', mapKey)
 price_list.bind('<1>', selectItem)
 price_list.bind('<Delete>', delItem)
+root.bind('<Control-o>', openHistoryWindow)
 
 
 root.mainloop()

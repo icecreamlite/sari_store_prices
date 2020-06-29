@@ -1,3 +1,21 @@
-Edited row 93: Empirador Long Neck	115	Drinks	Box Below Front Window  =>  Empirador Long Neck	120	Drinks	Box Below Front Window
-Edited row 197: San Miguel Ginebra	55	Drinks	Box Below Front Window  =>  San Miguel Ginebra	60	Drinks	Box Below Front Window
-Edited row 198: San Miguel Grande	105	Drinks	Refrigerator  =>  San Miguel Grande	110	Drinks	Refrigerator
+Edited row 93: Empirador Long Neck|115|Drinks|Box Below Front Window => Empirador Long Neck|120|Drinks|Box Below Front Window
+Edited row 197: San Miguel Ginebra|55|Drinks|Box Below Front Window => San Miguel Ginebra|60|Drinks|Box Below Front Window
+Edited row 198: San Miguel Grande|105|Drinks|Refrigerator => San Miguel Grande|110|Drinks|Refrigerator
+Deleted row 223: Test|123|Test|TEst
+Inserted: TEst|1|Test|Test
+Edited row 221: TEst|1|Test|Test => TEs|2|w|qw
+Deleted row 221: TEs|2|w|qw
+Inserted: ABCD|123|QWE|ASD
+Edited row 135: Louis Adiel Food Products (Bilog na Tinapay)|7|Bread|Front Window => Louis Adiel Food Products (Bilog na Tinapay)|8|Bread|Front Window
+Edited row 135: Louis Adiel Food Products (Bilog na Tinapay)|8|Bread|Front Window => Louis Adiel Food Products (Bilog na Tinapay)|7|Bread|Front Window
+Inserted: Test|10000|Test|Test
+Edited row 224: Test|10000|Test|Test => TESTTEST|10000|Test|Test
+Edited row 222: TESTTEST|10000|Test|Test => TESTTEST|15|Test|Test
+Edited row 222: TESTTEST|15|Test|Test => TESTTEST|15|qwe|asd
+Edited row 222: TESTTEST|15|qwe|asd => TESSSSTTT|1|asd|qwe
+Deleted row 222: TESSSSTTT|1|asd|qwe
+Deleted row 4: ABCD|123|QWE|ASD
+Inserted: Test|1|QWE|ASD
+Edited row 223: Test|1|QWE|ASD => Testasd|122222|QWE|ASD
+Edited row 223: Testasd|122222|QWE|ASD => Testasd|122222|zxc|zxc
+Deleted row 223: Testasd|122222|zxc|zxc
