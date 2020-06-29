@@ -253,6 +253,7 @@ def showEditWindow(trig):
 
 
 def mapKey(event):
+    print(event.keysym)
     global delBool
     #do if edit window or delete window is not active
     if editWindow.state() == 'withdrawn' and delBool == False:
@@ -272,7 +273,7 @@ def mapKey(event):
                 ent.focus_set()
                 updateText()
 
-            if event.keysym == 'Return':
+            if event.keysym == 'Return' or event.keysym == 'KP_Enter':
 
                 showEditWindow('edit')
                 
@@ -548,6 +549,8 @@ root.bind('<KeyRelease>', mapKey)
 price_list.bind('<1>', selectItem)
 price_list.bind('<Delete>', delItem)
 root.bind('<Control-o>', openHistoryWindow)
+editWindow.bind('<Return>', lambda event: submitItem())
+editWindow.bind('<KP_Enter>', lambda event: submitItem())
 
 
 root.mainloop()
