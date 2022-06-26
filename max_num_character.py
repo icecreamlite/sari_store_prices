@@ -5,7 +5,7 @@
 
 from openpyxl import load_workbook
 
-excel_file = load_workbook('/home/b/projects/sari_store_prices/ssp.xlsx')
+excel_file = load_workbook('/home/icecreamlite/PyScripts/ssp/sari_store_prices/ssp.xlsx')
 sheet1 = excel_file.get_sheet_by_name('Sheet1')
 num_items = len(list(sheet1.rows)) #get number of rows
 

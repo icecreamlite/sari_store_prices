@@ -29,4 +29,4 @@ def generateTagLocFile(sspDir):
             locations.write(f'{l}\n')
 
 if __name__ == '__main__':
-    generateTagLocFile('/home/b/projects/sari_store_prices/')
+    generateTagLocFile('/home/icecreamlite/PyScripts/ssp/sari_store_prices/')

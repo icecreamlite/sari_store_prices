@@ -15,7 +15,7 @@ from tkinter import font as tkFont
 import re, pandas
 from sys import path
 
-sspDir = '/home/b/projects/sari_store_prices/'
+sspDir = '/home/icecreamlite/PyScripts/ssp/sari_store_prices/'
 
 path.append(sspDir + 'modules')
 
